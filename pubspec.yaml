@@ -9,7 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  flutter_html: ^3.0.0-beta.2
+  file_picker: ^8.1.4
   crypto: ^3.0.3                    # card token — must match CardTokenService.php
   flutter_secure_storage: ^9.2.2    # card secret → Android Keystore
   qr_flutter: ^4.1.0                # renders the rotating code
@@ -28,3 +29,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+ 
