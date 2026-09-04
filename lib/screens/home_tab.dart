@@ -1,37 +1,110 @@
 import 'package:flutter/material.dart';
 
 import '../services/card_store.dart';
+import '../services/loyalty_api.dart';
 import '../theme/f4l_theme.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/forge_icon.dart';
-import 'blog_list_screen.dart';
-import 'cafeteria_screen.dart';
-import 'press_screen.dart';
+import 'day_pass_home.dart';
+import 'my_codes_screen.dart';
 import 'rewards_screen.dart';
-import 'perks_screen.dart';
-import 'shelf_screen.dart';
 
+/// Home, now about the sparks.
+///
+/// The card lives on its own tab, so it is not repeated here — what is left
+/// is the balance, the tier, the one thing you can do today, and what your
+/// sparks are worth.
+///
+/// A day visitor sees something else entirely: the upgrade pitch. Not a
+/// zeroed version of this screen — a balance of 0 and a progress bar that
+/// never moves reads as "you are failing" rather than "you have not joined".
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key, required this.onJump});
+
   final ValueChanged<int> onJump;
 
   @override
-  State<HomeTab> createState() => _HomeTabState();
+  State<HomeTab> createState() => HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> {
+/// Public so the shell can call [refresh] when this tab becomes visible.
+///
+/// The tabs live in an IndexedStack, which keeps every one of them alive —
+/// good for the card's rotating token, but it means initState runs once and
+/// never again. Without something telling Home to look, a member who earns
+/// sparks anywhere else sees a stale balance until they restart the app.
+class HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
+  LoyaltySummary? _s;
   Map<String, dynamic>? _member;
+  bool _loading = true;
+  bool _checkingIn = false;
 
   @override
   void initState() {
     super.initState();
-    CardStore.readMember().then((m) {
-      if (mounted) setState(() => _member = m);
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _readMember();
+    _load();
   }
 
-  String get _firstName {
-    final n = (_member?['name'] as String?)?.trim() ?? '';
-    return n.isEmpty ? 'there' : n.split(' ').first;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Coming back from the background. Someone whose card was scanned at
+  /// reception while the app sat in their pocket should see the points when
+  /// they look at it, not the next time they force-quit.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) refresh();
+  }
+
+  /// Called by the shell when Home becomes the visible tab.
+  Future<void> refresh() async {
+    // The member record is re-read too — upgrading from a day pass changes
+    // member_type, and the drawer header would otherwise keep the old one.
+    await _readMember();
+    await _load();
+  }
+
+  Future<void> _readMember() async {
+    final m = await CardStore.readMember();
+    if (mounted) setState(() => _member = m);
+  }
+
+  Future<void> _load() async {
+    try {
+      final s = await LoyaltyApi().summary();
+      if (mounted) {
+        setState(() {
+          _s = s;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _checkIn() async {
+    setState(() => _checkingIn = true);
+    try {
+      final msg = await LoyaltyApi().checkIn();
+      await _load();
+      if (mounted) {
+        setState(() => _checkingIn = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _checkingIn = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
+    }
   }
 
   String get _greeting {
@@ -44,258 +117,449 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final mute = Theme.of(context).textTheme.bodySmall?.color;
+    final s = _s;
 
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
-            children: [
-              Text(_dateLine().toUpperCase(),
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.8,
-                      color: mute)),
-              const SizedBox(height: 6),
-              BlendText('$_greeting, $_firstName.',
-                  style: const TextStyle(
-                      fontSize: 27, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 22),
-              const _Section(title: 'Quick actions'),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                // Lower than before: a 42px tile is taller than a line of emoji.
-                childAspectRatio: 1.32,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      // Anything opened from the drawer can spend or earn sparks — the café
+      // and The Shelf both can — so reload when the drawer closes.
+      onDrawerChanged: (open) {
+        if (!open) _load();
+      },
+      drawer: AppDrawer(
+        name: _member?['name'] as String? ?? 'Member',
+        email: _member?['email'] as String? ?? '',
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: RefreshIndicator(
+              onRefresh: refresh,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 110),
                 children: [
-                  _Action(
-                      spec: ForgeIcons.card,
-                      title: 'My card',
-                      sub: 'Show the QR',
-                      onTap: () => widget.onJump(2)),
-                  _Action(
-                      spec: ForgeIcons.programmes,
-                      title: 'Programmes',
-                      sub: 'Five forges',
-                      onTap: () => widget.onJump(1)),
-                  _Action(
-                      spec: ForgeIcons.whatsOn,
-                      title: "What's on",
-                      sub: 'Events & cohorts',
-                      onTap: () => widget.onJump(3)),
-                  _Action(
-                    spec: ForgeIcons.perks,
-                    title: 'Loyalty programme',
-                    sub: 'Forge for Life',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PerksScreen()),
+                  Row(children: [
+                    Builder(
+                      builder: (context) => IconButton(
+                        icon: const Icon(Icons.menu_rounded, size: 24),
+                        tooltip: 'Everything else',
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
+                    const Spacer(),
+                    // A pill reading "0 SPARKS" on every screen is a daily
+                    // reminder of something a day visitor is not in.
+                    if (s != null && s.loyalty) _sparksPill(s),
+                  ]),
+
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$_greeting,',
+                            style: TextStyle(fontSize: 15, color: mute)),
+                        BlendText(
+                          _member?['name']?.toString().split(' ').first ??
+                              'there',
+                          style: const TextStyle(
+                              fontSize: 30, fontWeight: FontWeight.w800),
+                        ),
+                      ],
                     ),
                   ),
-                  _Action(
-                    spec: ForgeIcons.cafeteria,
-                    title: 'The Quench',
-                    sub: 'Order food',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const CafeteriaScreen()),
-                    ),
-                  ),
-                  _Action(
-                    spec: ForgeIcons.press,
-                    title: 'The Press',
-                    sub: 'Print & photos',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PressScreen()),
-                    ),
-                  ),
-                  _Action(
-                    spec: (Icons.workspace_premium_rounded, ForgeTone.gold),
-                    title: 'My rewards',
-                    sub: 'Tier & discount',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RewardsScreen()),
-                    ),
-                  ),
-                  _Action(
-                    spec: ForgeIcons.blog,
-                    title: 'The Shelf',
-                    sub: 'Books & resources',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ShelfScreen()),
-                    ),
-                  ),
+                  const SizedBox(height: 20),
+
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 50),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (s == null)
+                    _offline(context, mute)
+
+                  // ---- day pass: the upgrade pitch, nothing else ----
+                  else if (!s.loyalty)
+                    DayPassHome(
+                      perks: s.perks ?? MemberPerks.fallback(),
+                      onUpgraded: refresh,
+                    )
+
+                  // ---- member: the loyalty stack ----
+                  else ...[
+                    _tierStrip(s, mute),
+                    const SizedBox(height: 12),
+                    _checkInCard(s, mute),
+                    const SizedBox(height: 12),
+                    _stats(s, mute),
+
+                    if (s.unusedCodes > 0) ...[
+                      const SizedBox(height: 12),
+                      _codesStrip(s, mute),
+                    ],
+
+                    const SizedBox(height: 24),
+                    _sectionHead(
+                        'Recent activity', 'View all', () => widget.onJump(4)),
+                    const SizedBox(height: 10),
+                    if (s.recent.isEmpty)
+                      _card(
+                        context,
+                        child: Row(children: [
+                          ForgeIcons.card.tile(size: 36),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Nothing yet. Check in above, or show your card '
+                              'at reception.',
+                              style: TextStyle(
+                                  fontSize: 13.5, height: 1.5, color: mute),
+                            ),
+                          ),
+                        ]),
+                      )
+                    else
+                      ...s.recent.map((e) => _activityRow(context, e, mute)),
+
+                    if (s.featured.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _sectionHead(
+                          'What your sparks buy', 'Browse', _openStore),
+                      const SizedBox(height: 10),
+                      ...s.featured.map((r) => _rewardRow(context, r, s, mute)),
+                    ],
+                  ],
                 ],
               ),
-              const SizedBox(height: 22),
-              const _Section(title: 'Next up'),
-              _Card(
-                child: Row(
-                  children: [
-                    ForgeIcons.bookings.tile(size: 38),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Nothing booked yet',
-                              style: TextStyle(
-                                  fontSize: 14.5, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 2),
-                          Text('Browse the programmes to find your first one.',
-                              style: TextStyle(fontSize: 12.5, color: mute)),
-                        ],
-                      ),
-                    ),
-                    TextButton(
-                        onPressed: () => widget.onJump(1),
-                        child: const Text('Browse')),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 22),
-              const _Section(title: 'Sparks from the Forge'),
-              InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const BlogListScreen(),
-                )),
-                child: _Card(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          ForgeIcons.blog.tile(size: 34),
-                          const SizedBox(width: 11),
-                          Expanded(
-                            child: Text('ATHLETE & CREATIVE TRANSITION',
-                                style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.4,
-                                    color: mute)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 11),
-                      const Text('The Boots by the Door',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 6),
-                      Text(
-                        'For eleven years Tanaka knew exactly who he was. Then his '
-                        'knee gave out in an ordinary training session.',
-                        style:
-                            TextStyle(fontSize: 13, height: 1.55, color: mute),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  String _dateLine() {
-    const days = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday'
-    ];
-    return '${days[DateTime.now().weekday - 1]} · Harare';
-  }
-}
+  void _openStore() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const RewardsScreen()))
+      .then((_) => _load());
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 11),
-        child: Text(title.toUpperCase(),
-            style: const TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.8)),
-      );
-}
-
-class _Card extends StatelessWidget {
-  const _Card({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
+  Widget _sparksPill(LoyaltySummary s) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
-          border: Border.all(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(16),
+          gradient: F4L.blend,
+          borderRadius: BorderRadius.circular(99),
         ),
-        child: child,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.auto_awesome, size: 15, color: Colors.white),
+          const SizedBox(width: 7),
+          Text('${s.points}',
+              style: const TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+          const SizedBox(width: 4),
+          const Text('SPARKS',
+              style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.7,
+                  color: Color(0xCCFFFFFF))),
+        ]),
       );
-}
 
-class _Action extends StatelessWidget {
-  const _Action({
-    required this.spec,
-    required this.title,
-    required this.sub,
-    required this.onTap,
-  });
+  Widget _tierStrip(LoyaltySummary s, Color? mute) => _card(
+        context,
+        onTap: _openStore,
+        child: Column(children: [
+          Row(children: [
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                gradient: F4L.blend,
+                shape: BoxShape.circle,
+              ),
+              child: Text('${s.tier.rank}',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${s.tier.label} tier',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800)),
+                  Text('${s.tier.discount}% discount unlocked',
+                      style: TextStyle(fontSize: 12.5, color: mute)),
+                ],
+              ),
+            ),
+            if (s.next != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('Next: ${s.next!.label}',
+                      style: TextStyle(fontSize: 11.5, color: mute)),
+                  Text('${s.next!.pointsToGo} to go',
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: F4L.orange)),
+                ],
+              ),
+          ]),
+          if (s.next != null) ...[
+            const SizedBox(height: 13),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: s.next!.progress,
+                minHeight: 7,
+                backgroundColor:
+                    Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                valueColor: const AlwaysStoppedAnimation(F4L.orange),
+              ),
+            ),
+          ],
+        ]),
+      );
 
-  /// (glyph, tone) — always from ForgeIcons, so the same feature keeps the
-  /// same icon wherever it appears.
-  final (IconData, ForgeTone) spec;
-  final String title;
-  final String sub;
-  final VoidCallback onTap;
+  Widget _checkInCard(LoyaltySummary s, Color? mute) => _card(
+        context,
+        child: Row(children: [
+          ForgeIcon(Icons.local_fire_department_rounded,
+              tone: s.checkedInToday ? ForgeTone.slate : ForgeTone.ember,
+              size: 42),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Daily forge check-in',
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
+                Text(
+                    s.checkedInToday
+                        ? 'Done today. Scanning in at reception earns '
+                            '${s.visitPoints} more.'
+                        : 'Earn ${s.checkInPoints} sparks every day you open the app',
+                    style: TextStyle(fontSize: 12.5, height: 1.4, color: mute)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 92,
+            child: _checkingIn
+                ? const Center(
+                    child: SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.2)))
+                : FilledButton(
+                    onPressed: s.checkedInToday ? null : _checkIn,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: F4L.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(s.checkedInToday ? 'Done' : 'Check in',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w800)),
+                  ),
+          ),
+        ]),
+      );
 
-  @override
-  Widget build(BuildContext context) => InkWell(
+  Widget _stats(LoyaltySummary s, Color? mute) => Row(children: [
+        Expanded(
+            child: _stat(context, Icons.trending_up_rounded, '${s.lifetime}',
+                'LIFETIME', mute)),
+        const SizedBox(width: 10),
+        Expanded(
+            child: _stat(context, Icons.auto_awesome_rounded, s.tier.label,
+                'TIER', mute)),
+        const SizedBox(width: 10),
+        Expanded(
+            child: _stat(context, Icons.card_giftcard_rounded,
+                '${s.tier.discount}%', 'DISCOUNT', mute)),
+      ]);
+
+  Widget _stat(BuildContext c, IconData icon, String value, String label,
+          Color? mute) =>
+      _card(
+        c,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+        child: Column(children: [
+          Icon(icon, size: 20, color: F4L.orange),
+          const SizedBox(height: 7),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                  color: mute)),
+        ]),
+      );
+
+  /// Only appears when there is something to show at a counter — an empty
+  /// "you have no codes" row would just be noise.
+  Widget _codesStrip(LoyaltySummary s, Color? mute) => _card(
+        context,
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const MyCodesScreen()))
+            .then((_) => _load()),
+        child: Row(children: [
+          ForgeIcon(Icons.confirmation_number_rounded,
+              tone: ForgeTone.gold, size: 38),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    '${s.unusedCodes} reward'
+                    '${s.unusedCodes == 1 ? '' : 's'} to collect',
+                    style: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w800)),
+                Text('Show the code at reception',
+                    style: TextStyle(fontSize: 12.5, color: mute)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 19),
+        ]),
+      );
+
+  Widget _activityRow(BuildContext c, LedgerEntry e, Color? mute) => Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: _card(
+          c,
+          padding: const EdgeInsets.all(13),
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(e.title,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  Text('${e.reason} · ${e.dateLabel}',
+                      style: TextStyle(fontSize: 11.5, color: mute)),
+                ],
+              ),
+            ),
+            Text('${e.delta >= 0 ? '+' : ''}${e.delta}',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: e.delta >= 0 ? F4L.teal : F4L.orange)),
+          ]),
+        ),
+      );
+
+  Widget _rewardRow(BuildContext c, Reward r, LoyaltySummary s, Color? mute) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: _card(
+          c,
+          padding: const EdgeInsets.all(13),
+          onTap: _openStore,
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(r.title,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  Text(r.valueLabel,
+                      style: TextStyle(fontSize: 12, color: mute)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+              decoration: BoxDecoration(
+                color: s.points >= r.cost
+                    ? F4L.teal.withValues(alpha: 0.14)
+                    : Theme.of(c).dividerColor.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text('${r.cost}',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: s.points >= r.cost ? F4L.teal : mute)),
+            ),
+          ]),
+        ),
+      );
+
+  Widget _offline(BuildContext c, Color? mute) => _card(
+        c,
+        child: Column(children: [
+          Icon(Icons.cloud_off, size: 28, color: mute),
+          const SizedBox(height: 10),
+          const Text('Could not load your sparks.',
+              style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text('Your card still works — pull down to try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12.5, color: mute)),
+        ]),
+      );
+
+  Widget _sectionHead(String title, String action, VoidCallback onTap) => Row(
+        children: [
+          Text(title.toUpperCase(),
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.6)),
+          const Spacer(),
+          InkWell(
+            onTap: onTap,
+            child: Text(action,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: F4L.orange)),
+          ),
+        ],
+      );
+
+  Widget _card(BuildContext c,
+          {required Widget child,
+          EdgeInsets padding = const EdgeInsets.all(15),
+          VoidCallback? onTap}) =>
+      InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: padding,
           decoration: BoxDecoration(
-            color:
-                Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+            color: Theme.of(c).colorScheme.surface.withValues(alpha: 0.88),
             border: Border.all(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+                color: Theme.of(c).dividerColor.withValues(alpha: 0.5)),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              spec.tile(size: 42),
-              const SizedBox(height: 9),
-              Text(title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 14.5, fontWeight: FontWeight.w800)),
-              Text(sub,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).textTheme.bodySmall?.color)),
-            ],
-          ),
+          child: child,
         ),
       );
 }

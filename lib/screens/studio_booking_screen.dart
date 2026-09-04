@@ -21,7 +21,7 @@ class _StudioBookingScreenState extends State<StudioBookingScreen> {
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   String? _time;
   final _country = TextEditingController();
-  int _copies = 4;
+  final int _copies = 4;
 
   late Future<List<Map<String, dynamic>>> _slots;
   bool _booking = false;

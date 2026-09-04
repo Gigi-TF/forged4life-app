@@ -21,13 +21,23 @@ class HomeShell extends StatefulWidget {
 class HomeShellState extends State<HomeShell> {
   late int _index = widget.initialIndex;
 
+  // Lets us tell Home to reload when it comes back into view.
+  final _homeKey = GlobalKey<HomeTabState>();
+
   /// Lets a child jump tabs — the Home quick actions use this.
-  void go(int i) => setState(() => _index = i);
+  /// Lets a child jump tabs — the Home quick actions use this.
+  void go(int i) {
+    setState(() => _index = i);
+
+    // Coming back to Home means the balance may have moved while they were
+    // spending sparks somewhere else.
+    if (i == 0) _homeKey.currentState?.refresh();
+  }
 
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      HomeTab(onJump: go),
+      HomeTab(key: _homeKey, onJump: go),
       const ProgrammesTab(),
       const CardTab(),
       const WhatsOnTab(),

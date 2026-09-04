@@ -2,13 +2,25 @@ import 'package:flutter/material.dart';
 
 import '../theme/f4l_theme.dart';
 import '../theme/theme_controller.dart';
-import '../widgets/membership_card.dart';
-import 'join_type_screen.dart';
-import 'sign_in_screen.dart';
+import '../widgets/card_specimen.dart';
+import 'auth_screen.dart';
 
 /// Leads with what SkillsForge360 does, then shows the card as the way in.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
+
+  /// The five cohort schools.
+  ///
+  /// Names rather than counts. "19 programmes" is wrong the first time one is
+  /// added or retired, and nobody remembers to change a number buried in an
+  /// app — whereas a sixth forge is a line added here, deliberately.
+  static const _forges = [
+    'Launch',
+    'Professional',
+    'Leadership',
+    'Life',
+    'Experience',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -61,19 +73,28 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 Text(
                   'A coaching, mentoring and experiential learning hub in Harare. '
-                  'Thirteen transformational journeys across five forges — '
+                  'Transformational journeys for every professional season — '
                   'contextualised for Zimbabwe, built for the world.',
                   style: TextStyle(fontSize: 15, height: 1.62, color: mute),
                 ),
-                const SizedBox(height: 20),
-                const Row(
-                  children: [
-                    Expanded(child: _Fact(figure: '13', label: 'programmes')),
-                    SizedBox(width: 9),
-                    Expanded(child: _Fact(figure: '5', label: 'forges')),
-                    SizedBox(width: 9),
-                    Expanded(child: _Fact(figure: '1', label: 'PATHWAY™')),
-                  ],
+                const SizedBox(height: 22),
+                Text('THE FIVE FORGES',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.8,
+                        color: mute)),
+                const SizedBox(height: 11),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _forges.map((f) => _ForgeChip(name: f)).toList(),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Built on the PATHWAY™ framework, and every journey ends '
+                  'with a personal Scorecard.',
+                  style: TextStyle(fontSize: 13.5, height: 1.55, color: mute),
                 ),
                 const SizedBox(height: 28),
                 Text('YOUR WAY IN',
@@ -93,7 +114,8 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 26),
                 FilledButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const JoinTypeScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const AuthScreen(startOnSignUp: true)),
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: F4L.orange,
@@ -109,7 +131,7 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 9),
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SignInScreen()),
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 15),
@@ -130,7 +152,7 @@ class WelcomeScreen extends StatelessWidget {
                               letterSpacing: 2,
                               color: mute)),
                       const SizedBox(height: 4),
-                      Text('Harare · Zimbabwe · Launching October 2026',
+                      Text('Harare · Zimbabwe',
                           style: TextStyle(fontSize: 12.5, color: mute)),
                     ],
                   ),
@@ -142,6 +164,35 @@ class WelcomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ForgeChip extends StatelessWidget {
+  const _ForgeChip({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.6)),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text.rich(TextSpan(children: [
+          const TextSpan(
+            text: 'FORGE ',
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                color: F4L.orange),
+          ),
+          TextSpan(
+            text: name,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ])),
+      );
 }
 
 class _FloatingCard extends StatefulWidget {
@@ -168,11 +219,10 @@ class _FloatingCardState extends State<_FloatingCard>
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
-    const card = MembershipCard(
-      name: 'Chiedza Mutasa',
-      cardNumber: 'FL 360 · 0447 2291',
-      tier: 'Tempered',
-    );
+    // A specimen, not a made-up member. Showing a stranger someone else's
+    // name three seconds before they hand over their own details is exactly
+    // the wrong feeling.
+    const card = CardSpecimen();
 
     if (reduceMotion) {
       return Transform.rotate(angle: -0.07, child: card);
@@ -190,34 +240,4 @@ class _FloatingCardState extends State<_FloatingCard>
       child: card,
     );
   }
-}
-
-class _Fact extends StatelessWidget {
-  const _Fact({required this.figure, required this.label});
-  final String figure;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
-        decoration: BoxDecoration(
-          border: Border.all(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          children: [
-            BlendText(figure,
-                style:
-                    const TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.35,
-                    color: Theme.of(context).textTheme.bodySmall?.color)),
-          ],
-        ),
-      );
 }

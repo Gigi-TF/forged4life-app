@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_client.dart';
+import '../services/auth_api.dart';
 import '../services/card_store.dart';
 import '../theme/f4l_theme.dart';
 import '../theme/theme_controller.dart';
 import '../widgets/forge_icon.dart';
 import 'blog_list_screen.dart';
+import 'my_listings_screen.dart';
 import 'orders_screen.dart';
-import 'welcome_screen.dart';
-import 'rewards_screen.dart';
 import 'perks_screen.dart';
+import 'rewards_screen.dart';
+import 'shelf_screen.dart';
+import 'welcome_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -31,7 +34,10 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Future<void> _signOut() async {
-    await CardStore.wipe();
+    // Tells the server too, so the token dies rather than lingering until it
+    // expires. Wipes locally either way, so it still works with no signal.
+    await AuthApi().logout();
+
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const WelcomeScreen()),
@@ -67,6 +73,72 @@ class _ProfileTabState extends State<ProfileTab> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.message)));
       }
+    }
+  }
+
+  Future<void> _changePassword() async {
+    final form = GlobalKey<FormState>();
+    final current = TextEditingController();
+    final next = TextEditingController();
+
+    final done = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Change password'),
+        content: Form(
+          key: form,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextFormField(
+              controller: current,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Current password'),
+              validator: (v) =>
+                  (v ?? '').isEmpty ? 'Enter your current password' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: next,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'New password'),
+              validator: (v) =>
+                  (v ?? '').length < 8 ? 'At least 8 characters' : null,
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) Navigator.pop(c, true);
+            },
+            child: const Text('Change'),
+          ),
+        ],
+      ),
+    );
+
+    if (done != true) return;
+
+    try {
+      await AuthApi().changePassword(
+        current: current.text,
+        password: next.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password changed.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
+    } finally {
+      current.dispose();
+      next.dispose();
     }
   }
 
@@ -169,6 +241,26 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
               ),
 
+              // Grouped by what they are: what your card is worth, then your
+              // things, then the account. Previously rewards and perks sat
+              // below Sign out, which put the two most interesting rows in
+              // the place people stop reading.
+              _Row(
+                spec: (Icons.workspace_premium_rounded, ForgeTone.gold),
+                title: 'Rewards & tier',
+                sub: 'What your card is worth',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RewardsScreen()),
+                ),
+              ),
+              _Row(
+                spec: ForgeIcons.perks,
+                title: 'Partner perks',
+                sub: 'Discounts beyond the Forge',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PerksScreen()),
+                ),
+              ),
               _Row(
                 spec: ForgeIcons.blog,
                 title: 'Sparks from the Forge',
@@ -177,6 +269,8 @@ class _ProfileTabState extends State<ProfileTab> {
                   MaterialPageRoute(builder: (_) => const BlogListScreen()),
                 ),
               ),
+
+              const SizedBox(height: 6),
               _Row(
                 spec: ForgeIcons.bookings,
                 title: 'My food orders',
@@ -186,10 +280,20 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
               ),
               _Row(
-                spec: ForgeIcons.whatsOn,
-                title: 'Updates & notifications',
-                sub: 'Choose what reaches you',
-                onTap: () => _soon(context),
+                spec: (Icons.inventory_2_rounded, ForgeTone.moss),
+                title: 'Books I am selling',
+                sub: 'The Shelf',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MyListingsScreen()),
+                ),
+              ),
+              _Row(
+                spec: (Icons.menu_book_rounded, ForgeTone.sea),
+                title: 'The Shelf',
+                sub: 'Books & learning resources',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ShelfScreen()),
+                ),
               ),
               _Row(
                 spec: ForgeIcons.programmes,
@@ -201,6 +305,20 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
               ),
               _Row(
+                spec: ForgeIcons.whatsOn,
+                title: 'Updates & notifications',
+                sub: 'Choose what reaches you',
+                onTap: () => _soon(context),
+              ),
+
+              const SizedBox(height: 6),
+              _Row(
+                spec: (Icons.lock_outline_rounded, ForgeTone.teal),
+                title: 'Change password',
+                sub: 'You will stay signed in on this phone',
+                onTap: _changePassword,
+              ),
+              _Row(
                 spec: (Icons.ac_unit_rounded, ForgeTone.teal),
                 title: 'Freeze my card',
                 sub: 'Lost phone? Stop it scanning anywhere.',
@@ -209,26 +327,12 @@ class _ProfileTabState extends State<ProfileTab> {
               _Row(
                 spec: (Icons.logout_rounded, ForgeTone.slate),
                 title: 'Sign out',
-                sub: 'You will need a new code to get back in',
+                // The old copy said "you will need a new code" — that was the
+                // OTP flow. It is a password now.
+                sub: 'You will need your password to get back in',
                 onTap: _signOut,
               ),
-              _Row(
-                spec: (Icons.workspace_premium_rounded, ForgeTone.gold),
-                title: 'Rewards & tier',
-                sub: 'What your card is worth',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RewardsScreen()),
-                ),
-              ),
 
-              _Row(
-                spec: ForgeIcons.perks,
-                title: 'Partner perks',
-                sub: 'Discounts beyond the Forge',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PerksScreen()),
-                ),
-              ),
               const SizedBox(height: 20),
               Center(
                 child: Text('Forged 4 Life · a product of SkillsForge360',

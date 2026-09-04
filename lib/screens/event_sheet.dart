@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../services/event_api.dart';
 import '../theme/f4l_theme.dart';
-import '../widgets/forge_icon.dart';
 
 /// Tap an event, get the detail and the button. A sheet rather than a screen
 /// because registering is one decision — pushing a whole route for it makes
@@ -174,8 +173,7 @@ class _EventSheetState extends State<EventSheet> {
               if (_e.description != null) ...[
                 const SizedBox(height: 16),
                 Text(_e.description!,
-                    style:
-                        TextStyle(fontSize: 14, height: 1.6, color: mute)),
+                    style: TextStyle(fontSize: 14, height: 1.6, color: mute)),
               ],
 
               const SizedBox(height: 16),

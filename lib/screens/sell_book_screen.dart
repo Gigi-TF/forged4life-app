@@ -66,10 +66,12 @@ class _SellBookScreenState extends State<SellBookScreen> {
         price: double.parse(_price.text),
         description: _description.text.trim(),
       );
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _done = msg;
         _sending = false;
       });
+      }
     } catch (e) {
       setState(() => _sending = false);
       if (mounted) {

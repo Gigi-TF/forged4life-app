@@ -21,10 +21,12 @@ class _ShelfItemSheetState extends State<ShelfItemSheet> {
     setState(() => _busy = true);
     try {
       final msg = await ShelfApi().reserve(widget.item.id);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _done = msg;
         _busy = false;
       });
+      }
     } catch (e) {
       setState(() => _busy = false);
       if (mounted) {

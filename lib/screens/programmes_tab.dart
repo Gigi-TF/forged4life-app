@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/forges.dart';
 import '../theme/f4l_theme.dart';
-import '../widgets/forge_icon.dart';
+
 import 'forge_detail_screen.dart';
 
 /// The five cohort schools. Each opens into its own card of programmes —
