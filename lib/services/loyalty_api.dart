@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
 
@@ -234,7 +235,7 @@ class LoyaltySummary {
 }
 
 class LoyaltyApi {
-  LoyaltyApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  LoyaltyApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   Future<Map<String, String>> _headers() async => {

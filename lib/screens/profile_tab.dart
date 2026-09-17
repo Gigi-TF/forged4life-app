@@ -8,12 +8,11 @@ import '../theme/f4l_theme.dart';
 import '../theme/theme_controller.dart';
 import '../widgets/forge_icon.dart';
 import 'blog_list_screen.dart';
-import 'my_listings_screen.dart';
 import 'orders_screen.dart';
 import 'perks_screen.dart';
 import 'rewards_screen.dart';
-import 'shelf_screen.dart';
 import 'welcome_screen.dart';
+import 'books_entry.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -279,20 +278,12 @@ class _ProfileTabState extends State<ProfileTab> {
                   MaterialPageRoute(builder: (_) => const OrdersScreen()),
                 ),
               ),
-              _Row(
-                spec: (Icons.inventory_2_rounded, ForgeTone.moss),
-                title: 'Books I am selling',
-                sub: 'The Shelf',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const MyListingsScreen()),
-                ),
-              ),
-              _Row(
+               _Row(
                 spec: (Icons.menu_book_rounded, ForgeTone.sea),
-                title: 'The Shelf',
-                sub: 'Books & learning resources',
+                title: 'Books',
+                sub: 'Buy, sell or donate',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ShelfScreen()),
+                  MaterialPageRoute(builder: (_) => const BooksEntry()),
                 ),
               ),
               _Row(

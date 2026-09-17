@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class VisitPurpose {
@@ -23,7 +24,7 @@ class VisitPurpose {
 /// app release — which matters, because the useful list is the one that
 /// follows what is actually happening in the building.
 class PurposesApi {
-  PurposesApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  PurposesApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   Future<List<VisitPurpose>> all() async {

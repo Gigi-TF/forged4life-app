@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 
 class BlogPost {
@@ -51,7 +52,7 @@ class BlogPost {
 /// Reads the website's blog. Public — no token needed, so the app can show
 /// stories before anyone signs up.
 class BlogApi {
-  BlogApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  BlogApi({this.baseUrl = Api.base});
 
   final String baseUrl;
 

@@ -33,8 +33,11 @@ class DayPass extends StatelessWidget {
   /// The rotating scan token. Null while it loads.
   final String? token;
 
+  /// Collected at signup and shown to staff in Filament. Kept on the widget
+  /// so callers do not have to change, but deliberately not rendered.
   final String? room;
   final String? purpose;
+
   final String? company;
   final String? vehicleReg;
   final int purgeDays;
@@ -179,10 +182,13 @@ class DayPass extends StatelessWidget {
         child: Column(
           children: [
             _row('VISITOR', name, 'DATE', date),
-            _row('VALID UNTIL', validUntil, 'ROOM', room ?? '—'),
-            if (purpose != null || company != null)
-              _row('PURPOSE', purpose ?? '—', 'WITH', company ?? '—',
-                  last: vehicleReg == null),
+
+            // Purpose and room are collected at signup but NOT shown here.
+            // The visitor already knows why they came and where they are
+            // going — it is operational data for reception, and printing it
+            // on a ticket someone may show at a gate just adds clutter.
+            _row('VALID UNTIL', validUntil, 'WITH', company ?? '—',
+                last: vehicleReg == null),
 
             if (vehicleReg != null) ...[
               const SizedBox(height: 6),

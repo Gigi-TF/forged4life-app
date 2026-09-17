@@ -153,7 +153,6 @@ class HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
                     // reminder of something a day visitor is not in.
                     if (s != null && s.loyalty) _sparksPill(s),
                   ]),
-
                   const SizedBox(height: 10),
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
@@ -172,7 +171,6 @@ class HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   if (_loading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 50),
@@ -195,12 +193,10 @@ class HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
                     _checkInCard(s, mute),
                     const SizedBox(height: 12),
                     _stats(s, mute),
-
                     if (s.unusedCodes > 0) ...[
                       const SizedBox(height: 12),
                       _codesStrip(s, mute),
                     ],
-
                     const SizedBox(height: 24),
                     _sectionHead(
                         'Recent activity', 'View all', () => widget.onJump(4)),
@@ -223,7 +219,6 @@ class HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
                       )
                     else
                       ...s.recent.map((e) => _activityRow(context, e, mute)),
-
                     if (s.featured.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       _sectionHead(
@@ -425,7 +420,7 @@ class HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
             .push(MaterialPageRoute(builder: (_) => const MyCodesScreen()))
             .then((_) => _load()),
         child: Row(children: [
-          ForgeIcon(Icons.confirmation_number_rounded,
+          const ForgeIcon(Icons.confirmation_number_rounded,
               tone: ForgeTone.gold, size: 38),
           const SizedBox(width: 12),
           Expanded(

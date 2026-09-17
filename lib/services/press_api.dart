@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
@@ -66,7 +67,7 @@ class PressCatalogue {
 }
 
 class PressApi {
-  PressApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  PressApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   Future<PressCatalogue> services() async {

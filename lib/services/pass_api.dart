@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
 
@@ -45,7 +46,7 @@ class MyPass {
 }
 
 class PassApi {
-  PassApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  PassApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   /// Null when this member has no day visit — which is every full member.

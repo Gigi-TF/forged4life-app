@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
 
@@ -7,7 +8,7 @@ import 'card_store.dart';
 /// Both calls end the same way: a Sanctum token in secure storage and the
 /// card secret pulled down, so the QR works offline from the first second.
 class AuthApi {
-  AuthApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  AuthApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   static const _headers = {

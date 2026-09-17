@@ -29,12 +29,14 @@ class _RewardsScreenState extends State<RewardsScreen> {
   Future<void> _load() async {
     try {
       final r = await LoyaltyApi().store();
-      if (mounted) setState(() {
-        _rewards = r.rewards;
-        _points = r.points;
-        _tier = r.tier;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _rewards = r.rewards;
+          _points = r.points;
+          _tier = r.tier;
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -75,12 +77,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(result.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700)),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               decoration: BoxDecoration(
                 gradient: F4L.blend,
                 borderRadius: BorderRadius.circular(12),
@@ -312,18 +313,15 @@ class _RewardCard extends StatelessWidget {
                 ],
               ),
             ]),
-
             const SizedBox(height: 12),
             Text(reward.description,
                 style: TextStyle(fontSize: 13.5, height: 1.5, color: mute)),
-
             const SizedBox(height: 12),
             Row(children: [
               _chip(context, reward.valueLabel, F4L.teal),
               const SizedBox(width: 8),
               _chip(context, '${reward.minTierLabel}+', mute ?? F4L.teal),
             ]),
-
             const SizedBox(height: 14),
             if (busy)
               const Center(
@@ -353,8 +351,8 @@ class _RewardCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text('Redeem now',
-                    style: TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w800)),
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
               ),
           ],
         ),

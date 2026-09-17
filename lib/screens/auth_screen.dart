@@ -196,10 +196,6 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _GoogleButton(),
-                          const SizedBox(height: 16),
-                          _orDivider(context, mute),
-                          const SizedBox(height: 16),
                           if (_signUp) ...[
                             _label('What brings you in?'),
                             _JoinChoice(
@@ -238,12 +234,21 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           if (_signUp) ...[
                             const SizedBox(height: 14),
-                            _label('Mobile number'),
+                            _label('WhatsApp number'),
                             _field(
                               controller: _phone,
                               hint: '+263 71 000 0000',
-                              icon: Icons.phone_outlined,
+                              icon: Icons.chat_bubble_outline,
                               keyboard: TextInputType.phone,
+                              validator: (v) {
+                                final digits =
+                                    (v ?? '').replaceAll(RegExp(r'\D'), '');
+                                if (digits.isEmpty) return null; // optional
+                                if (digits.length < 9) {
+                                  return 'That number looks too short';
+                                }
+                                return null;
+                              },
                             ),
 
                             // Only worth asking a day visitor — a member's
@@ -283,6 +288,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                     hint: 'Tell us in a few words',
                                     icon: Icons.edit_outlined,
                                     capitalise: true,
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Please tell us in a few words'
+                                        : null,
                                   ),
                                 ],
                               ],

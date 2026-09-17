@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
 
@@ -79,7 +80,7 @@ class F4LEvent {
 }
 
 class EventApi {
-  EventApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  EventApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   Future<Map<String, String>> _headers() async {

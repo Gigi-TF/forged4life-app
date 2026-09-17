@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
 
@@ -16,7 +17,7 @@ class ApiException implements Exception {
 /// Change [baseUrl] to your machine's LAN address when testing on a phone —
 /// 127.0.0.1 on the device means the device, not your laptop.
 class ApiClient {
-  ApiClient({this.baseUrl = 'http://127.0.0.1:8000'});
+  ApiClient({this.baseUrl = Api.base});
 
   final String baseUrl;
 

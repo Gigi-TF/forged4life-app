@@ -3,11 +3,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../screens/blog_list_screen.dart';
 import '../screens/cafeteria_screen.dart';
-import '../screens/my_listings_screen.dart';
 import '../screens/orders_screen.dart';
 import '../screens/perks_screen.dart';
 import '../screens/press_screen.dart';
-import '../screens/shelf_screen.dart';
+import '../screens/books_entry.dart';
 import '../theme/f4l_theme.dart';
 import '../theme/theme_controller.dart';
 import '../widgets/forge_icon.dart';
@@ -82,8 +81,8 @@ class AppDrawer extends StatelessWidget {
                 'Order food & drink', const CafeteriaScreen()),
             _item(context, ForgeIcons.press, 'The Press',
                 'Printing, photos & the studio', const PressScreen()),
-            _item(context, (Icons.menu_book_rounded, ForgeTone.sea), 'The Shelf',
-                'Books & learning resources', const ShelfScreen()),
+            _item(context, (Icons.menu_book_rounded, ForgeTone.sea), 'Books',
+                'Buy, sell or donate', const BooksEntry()),
             _item(context, ForgeIcons.perks, 'Partner perks',
                 'Discounts beyond the Forge', const PerksScreen()),
 
@@ -91,8 +90,7 @@ class AppDrawer extends StatelessWidget {
             _head('MINE', mute),
             _item(context, ForgeIcons.bookings, 'My food orders',
                 'The Quench', const OrdersScreen()),
-            _item(context, (Icons.inventory_2_rounded, ForgeTone.moss),
-                'Books I am selling', 'The Shelf', const MyListingsScreen()),
+            
 
             const SizedBox(height: 16),
             _head('READ', mute),

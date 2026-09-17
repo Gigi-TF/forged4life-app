@@ -1,10 +1,11 @@
 import 'dart:convert';
+import '../config.dart';
 import 'package:http/http.dart' as http;
 import 'card_store.dart';
 
 /// Turning a day pass into a membership.
 class UpgradeApi {
-  UpgradeApi({this.baseUrl = 'http://127.0.0.1:8000'});
+  UpgradeApi({this.baseUrl = Api.base});
   final String baseUrl;
 
   Future<String> toMember() async {
