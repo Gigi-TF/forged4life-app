@@ -444,19 +444,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _orDivider(BuildContext context, Color? mute) => Row(children: [
-        Expanded(
-            child: Divider(color: Theme.of(context).dividerColor, height: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 13),
-          child: Text('OR',
-              style: TextStyle(
-                  fontSize: 11.5, fontWeight: FontWeight.w700, color: mute)),
-        ),
-        Expanded(
-            child: Divider(color: Theme.of(context).dividerColor, height: 1)),
-      ]);
-
   Widget _label(String t) => Padding(
         padding: const EdgeInsets.only(bottom: 7),
         child: Text(t,
@@ -566,79 +553,3 @@ class _JoinChoice extends StatelessWidget {
   }
 }
 
-/// Google sign-in.
-///
-/// The button is here because the design has it, but it is NOT wired: Google
-/// sign-in needs a Cloud project, an OAuth client per platform, and a release
-/// SHA-1 fingerprint that does not exist until there is a keystore. Letting
-/// people tap a button that silently does nothing is worse than saying so.
-class _GoogleButton extends StatelessWidget {
-  const _GoogleButton();
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(11),
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Google sign-in is coming. Use your email for now.')),
-        ),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).dividerColor),
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                  width: 19, height: 19, child: CustomPaint(painter: _G())),
-              SizedBox(width: 11),
-              Text('Continue with Google',
-                  style:
-                      TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      );
-}
-
-/// The four-colour G, drawn rather than shipped as an asset.
-class _G extends CustomPainter {
-  const _G();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = Rect.fromLTWH(0, 0, size.width, size.height);
-    final stroke = size.width * 0.27;
-
-    for (final (start, sweep, colour) in [
-      (-0.55, 1.0, const Color(0xFF4285F4)),
-      (0.55, 1.35, const Color(0xFF34A853)),
-      (1.95, 1.35, const Color(0xFFFBBC05)),
-      (3.35, 1.35, const Color(0xFFEA4335)),
-    ]) {
-      canvas.drawArc(
-        r.deflate(stroke / 2),
-        start,
-        sweep,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke
-          ..color = colour,
-      );
-    }
-
-    canvas.drawRect(
-      Rect.fromLTWH(
-          size.width * 0.5, size.height * 0.38, size.width * 0.5, stroke),
-      Paint()..color = const Color(0xFF4285F4),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
