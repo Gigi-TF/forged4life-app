@@ -108,7 +108,7 @@ class _PostCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => BlogPostScreen(slug: post.slug, preview: post),
+          builder: (_) => BlogPostScreen(slug: post.slug),
         )),
         child: Container(
           clipBehavior: Clip.antiAlias,

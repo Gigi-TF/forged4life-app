@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../screens/blog_list_screen.dart';
+import '../screens/books_entry.dart';
 import '../screens/cafeteria_screen.dart';
 import '../screens/orders_screen.dart';
 import '../screens/perks_screen.dart';
 import '../screens/press_screen.dart';
-import '../screens/books_entry.dart';
+import '../services/features.dart';
 import '../theme/f4l_theme.dart';
 import '../theme/theme_controller.dart';
-import '../widgets/forge_icon.dart';
+import 'coming_soon.dart';
+import 'forge_icon.dart';
 
 /// Everything that used to crowd the Home screen.
 ///
-/// Home is now about the card and the sparks; the rest of the Forge lives one
-/// tap away behind the menu. Nothing is buried — it is just not competing for
+/// Home is about the card and the sparks; the rest of the Forge lives one tap
+/// away behind the menu. Nothing is buried — it is just not competing for
 /// attention with the thing people opened the app to see.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key, required this.name, required this.email});
@@ -22,11 +24,14 @@ class AppDrawer extends StatelessWidget {
   final String name;
   final String email;
 
+  static const _site = 'https://skillsforge360.org';
+
   @override
   Widget build(BuildContext context) {
     final mute = Theme.of(context).textTheme.bodySmall?.color;
     final theme = ThemeController.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final f = Features.instance;
 
     final initials = name
         .trim()
@@ -75,38 +80,24 @@ class AppDrawer extends StatelessWidget {
               ),
             ]),
 
-            const SizedBox(height: 22),
-            _head('AT THE FORGE', mute),
-            _item(context, ForgeIcons.cafeteria, 'The Quench',
-                'Order food & drink', const CafeteriaScreen()),
-            _item(context, ForgeIcons.press, 'The Press',
-                'Printing, photos & the studio', const PressScreen()),
-            _item(context, (Icons.menu_book_rounded, ForgeTone.sea), 'Books',
-                'Buy, sell or donate', const BooksEntry()),
-            _item(context, ForgeIcons.perks, 'Partner perks',
-                'Discounts beyond the Forge', const PerksScreen()),
-
-            const SizedBox(height: 16),
-            _head('MINE', mute),
-            _item(context, ForgeIcons.bookings, 'My food orders',
-                'The Quench', const OrdersScreen()),
-            
-
-            const SizedBox(height: 16),
-            _head('READ', mute),
-            _item(context, ForgeIcons.blog, 'Sparks from the Forge',
-                'Stories from the Institute', const BlogListScreen()),
-            _link(context, ForgeIcons.programmes,
-                'Register interest in a programme', 'skillsforge360.org',
-                'https://skillsforge360.org/register-interest'),
-
-            const SizedBox(height: 16),
-            _head('SETTINGS', mute),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+            /*
+             * Dark mode, at the top.
+             *
+             * It is the one row people come here to use repeatedly — everything
+             * else is a destination you visit once and then navigate from. A
+             * setting buried under three groups is a setting nobody finds.
+             */
+            const SizedBox(height: 18),
+            InkWell(
+              onTap: theme.toggle,
+              borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+                padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
                 decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceTint
+                      .withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                       color: Theme.of(context)
@@ -114,12 +105,14 @@ class AppDrawer extends StatelessWidget {
                           .withValues(alpha: 0.5)),
                 ),
                 child: Row(children: [
-                  Icon(dark ? Icons.dark_mode_outlined
-                            : Icons.light_mode_outlined, size: 20),
+                  Icon(
+                      dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                      size: 20,
+                      color: F4L.orange),
                   const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text('Dark mode',
-                        style: TextStyle(
+                  Expanded(
+                    child: Text(dark ? 'Dark mode' : 'Light mode',
+                        style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w700)),
                   ),
                   Switch(
@@ -130,6 +123,70 @@ class AppDrawer extends StatelessWidget {
                 ]),
               ),
             ),
+
+            const SizedBox(height: 20),
+            _head('AT THE FORGE', mute),
+
+            ComingSoon(
+              enabled: f.cafeteria,
+              child: _item(context, ForgeIcons.cafeteria, 'The Quench',
+                  'Order food & drink', const CafeteriaScreen()),
+            ),
+            ComingSoon(
+              enabled: f.press,
+              child: _item(context, ForgeIcons.press, 'The Press',
+                  'Printing, photos & the studio', const PressScreen()),
+            ),
+            ComingSoon(
+              enabled: f.books,
+              child: _item(context, (Icons.menu_book_rounded, ForgeTone.sea),
+                  'Books', 'Buy, sell or donate', const BooksEntry()),
+            ),
+            _item(context, ForgeIcons.perks, 'Partner perks',
+                'Discounts beyond the Forge', const PerksScreen()),
+
+            const SizedBox(height: 16),
+            _head('MINE', mute),
+
+            /*
+             * Follows the cafeteria flag, not one of its own.
+             *
+             * A member with no way to order has nothing to look at here — two
+             * switches for one state is two things to remember and one to
+             * forget.
+             */
+            ComingSoon(
+              enabled: f.cafeteria,
+              child: _item(context, ForgeIcons.bookings, 'My food orders',
+                  'The Quench', const OrdersScreen()),
+            ),
+
+            const SizedBox(height: 16),
+            _head('READ', mute),
+            _item(context, ForgeIcons.blog, 'Sparks from the Forge',
+              'Stories from the Institute', const BlogListScreen()),
+            _link(
+                context,
+                ForgeIcons.programmes,
+                'Register interest in a programme',
+                'skillsforge360.org',
+                '$_site/register-interest'),
+
+            const SizedBox(height: 16),
+            _head('SETTINGS', mute),
+
+            // Both required by Google Play: the policy has to be reachable
+            // from inside the app, and an app that creates accounts has to
+            // offer deletion from inside it too.
+            _link(context, (Icons.shield_outlined, ForgeTone.slate),
+                'Privacy policy', 'How we handle your data', '$_site/privacy'),
+
+            _link(
+                context,
+                (Icons.person_remove_outlined, ForgeTone.slate),
+                'Delete my account',
+                'Ask us to remove your data',
+                '$_site/delete-account'),
 
             const SizedBox(height: 14),
             Center(

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-
 import '../theme/f4l_theme.dart';
 import 'card_tab.dart';
 import 'home_tab.dart';
 import 'profile_tab.dart';
 import 'programmes_tab.dart';
-import 'whatson_tab.dart';
+import 'sessions_tab.dart';
 
 /// The app proper. Five tabs, with the card raised in the centre because it is
 /// the thing people open the app to reach.
@@ -40,7 +39,7 @@ class HomeShellState extends State<HomeShell> {
       HomeTab(key: _homeKey, onJump: go),
       const ProgrammesTab(),
       const CardTab(),
-      const WhatsOnTab(),
+      const SessionsTab(),
       const ProfileTab(),
     ];
 
@@ -101,7 +100,7 @@ class _TabBar extends StatelessWidget {
             _Item(
                 icon: Icons.event_outlined,
                 filled: Icons.event,
-                label: "What's on",
+                label: "Sessions",
                 on: index == 3,
                 onTap: () => onTap(3)),
             _Item(

@@ -1,7 +1,7 @@
 name: forged4life
 description: Forged 4 Life — SkillsForge360 membership.
 publish_to: none
-version: 1.0.0+1
+version: 1.0.0+4
 
 environment:
   sdk: ^3.5.0
@@ -19,14 +19,25 @@ dependencies:
   google_fonts: ^6.2.1              # Montserrat
   url_launcher: ^6.3.1              # register-interest links
   intl: ^0.19.0
+  app_links: ^6.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
- 
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/logo-icon-1024.png"
+
+  # White, not teal. The mark is teal and orange — on a teal ground the teal
+  # half of it disappears.
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/logo-icon-foreground.png"

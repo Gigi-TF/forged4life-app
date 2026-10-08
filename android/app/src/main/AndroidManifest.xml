@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-<uses-permission android:name="android.permission.INTERNET"/>
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="forged4life"
+        android:label="Forged 4 Life"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -25,6 +27,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!--
+                Android App Links.
+
+                autoVerify makes Android fetch /.well-known/assetlinks.json on
+                install and open these URLs in the app without asking. Without
+                it the user gets an "open with" chooser every time, which most
+                people dismiss.
+
+                Scoped to /sessions on purpose. Claiming the whole domain would
+                mean blog and store links opening an app that cannot display
+                them — someone taps an article and lands on the home screen,
+                confused.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+
+                <data android:scheme="https"
+                      android:host="skillsforge360.org"
+                      android:pathPrefix="/sessions"/>
+
+                <!-- Spare, for anything the app should own later. -->
+                <data android:scheme="https"
+                      android:host="skillsforge360.org"
+                      android:pathPrefix="/app"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -41,6 +71,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+
+        <!--
+            url_launcher needs to see that a browser exists before it will
+            open one. Without this, the privacy policy, the deletion page and
+            the store link all fail silently on Android 11 and later.
+        -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

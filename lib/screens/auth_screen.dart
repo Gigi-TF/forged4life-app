@@ -206,7 +206,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             _label('Full name'),
                             _field(
                               controller: _name,
-                              hint: 'Grace Chundu',
+                              hint: 'Name Surname',
                               icon: Icons.person_outline,
                               capitalise: true,
                               validator: (v) =>
@@ -552,4 +552,3 @@ class _JoinChoice extends StatelessWidget {
     );
   }
 }
-

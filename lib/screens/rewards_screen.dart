@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../services/features.dart';
 import '../services/loyalty_api.dart';
 import '../theme/f4l_theme.dart';
+import '../widgets/coming_soon.dart';
 import '../widgets/forge_icon.dart';
 import 'my_codes_screen.dart';
+import 'tiers_screen.dart';
 
 /// The store. Sparks in, a code out.
 class RewardsScreen extends StatefulWidget {
@@ -43,6 +46,16 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }
 
   Future<void> _redeem(Reward r) async {
+    /*
+     * Belt and braces.
+     *
+     * The card is wrapped in ComingSoon, so this cannot normally be reached
+     * while the store is off — but a redemption is irreversible and spends
+     * someone's sparks, so it checks for itself rather than trusting that
+     * the wrapper is still there after the next edit.
+     */
+    if (!Features.instance.rewards) return;
+
     final sure = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -120,11 +133,19 @@ class _RewardsScreenState extends State<RewardsScreen> {
   @override
   Widget build(BuildContext context) {
     final mute = Theme.of(context).textTheme.bodySmall?.color;
+    final storeOpen = Features.instance.rewards;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Rewards'),
         actions: [
+          IconButton(
+            tooltip: 'How tiers work',
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TiersScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'My codes',
             icon: const Icon(Icons.confirmation_number_outlined, size: 21),
@@ -144,17 +165,37 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(18, 6, 18, 30),
                     children: [
+                      /*
+                       * The balance card stays live even when the store is
+                       * closed.
+                       *
+                       * Earning still works and the tier still discounts at
+                       * the counter, so the screen reads as "here is what you
+                       * are building towards" rather than "come back later".
+                       * Only spending is held back.
+                       */
                       _balanceCard(mute),
                       const SizedBox(height: 20),
+                      if (!storeOpen) ...[
+                        const SoonBanner(
+                          title: 'The store opens with the Forge',
+                          body: 'Keep earning — every spark you collect now '
+                              'is one you will be able to spend when the store opens.',
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       if (_rewards.isEmpty)
                         _empty(mute)
                       else
-                        ..._rewards.map((r) => _RewardCard(
-                              reward: r,
-                              points: _points,
-                              tierRank: _tier?.rank ?? 1,
-                              busy: _busyId == r.id,
-                              onRedeem: () => _redeem(r),
+                        ..._rewards.map((r) => ComingSoon(
+                              enabled: storeOpen,
+                              child: _RewardCard(
+                                reward: r,
+                                points: _points,
+                                tierRank: _tier?.rank ?? 1,
+                                busy: _busyId == r.id,
+                                onRedeem: () => _redeem(r),
+                              ),
                             )),
                     ],
                   ),
@@ -164,60 +205,100 @@ class _RewardsScreenState extends State<RewardsScreen> {
     );
   }
 
-  Widget _balanceCard(Color? mute) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: F4L.blend,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: F4L.orange.withValues(alpha: 0.28),
-              blurRadius: 24,
-              offset: const Offset(0, 9),
-            ),
-          ],
+  /// Tappable, because the tier badge on this card is exactly where someone
+  /// looks when they wonder "what is Ember?" — not at a question mark in the
+  /// app bar. The answer should be where the question gets asked.
+  Widget _balanceCard(Color? mute) => InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const TiersScreen()),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Text('YOUR SPARKS',
-                  style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.8,
-                      color: Colors.white)),
-              const Spacer(),
-              if (_tier != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.24),
-                    borderRadius: BorderRadius.circular(99),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: F4L.blend,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: F4L.orange.withValues(alpha: 0.28),
+                blurRadius: 24,
+                offset: const Offset(0, 9),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Text('YOUR SPARKS',
+                    style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.8,
+                        color: Colors.white)),
+                const Spacer(),
+                if (_tier != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.24),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(_tier!.label.toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white)),
                   ),
-                  child: Text(_tier!.label.toUpperCase(),
+              ]),
+              const SizedBox(height: 12),
+              Text('$_points',
+                  style: const TextStyle(
+                      fontSize: 44,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                      color: Colors.white)),
+              const SizedBox(height: 6),
+
+              /*
+               * The chevron is what makes this read as tappable.
+               *
+               * Without it this is a card with a number on it, nobody taps,
+               * and the explainer becomes a screen that was built and never
+               * read.
+               */
+              Row(children: [
+                Flexible(
+                  child: Text(
+                      _tier == null
+                          ? 'Spend them below.'
+                          : 'Plus ${_tier!.discount}% off everywhere, '
+                              'automatically.',
                       style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white)),
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: Color(0xF0FFFFFF))),
                 ),
-            ]),
-            const SizedBox(height: 12),
-            Text('$_points',
-                style: const TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                    color: Colors.white)),
-            const SizedBox(height: 6),
-            Text(
-                _tier == null
-                    ? 'Spend them below.'
-                    : 'Plus ${_tier!.discount}% off everywhere, automatically.',
-                style: const TextStyle(
-                    fontSize: 13.5, height: 1.5, color: Color(0xF0FFFFFF))),
-          ],
+                const SizedBox(width: 7),
+                const Padding(
+                  padding: EdgeInsets.only(top: 1),
+                  child: Icon(Icons.arrow_forward_ios,
+                      size: 11, color: Colors.white70),
+                ),
+              ]),
+              const SizedBox(height: 11),
+              const Row(children: [
+                Icon(Icons.help_outline, size: 13, color: Colors.white70),
+                SizedBox(width: 6),
+                Text('How tiers work',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white70)),
+              ]),
+            ],
+          ),
         ),
       );
 
@@ -232,12 +313,12 @@ class _RewardsScreenState extends State<RewardsScreen> {
         child: Column(children: [
           ForgeIcons.perks.tile(size: 46),
           const SizedBox(height: 14),
-          const Text('The store opens with the Forge.',
+          const Text('Nothing in the store yet.',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text(
-            'Keep earning — every spark you collect now is one you can spend '
-            'in October.',
+            'Rewards are being put together. Your sparks keep adding up in '
+            'the meantime.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13.5, height: 1.55, color: mute),
           ),
